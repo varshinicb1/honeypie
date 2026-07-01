@@ -4,5 +4,5 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src/index.ts", "src/bin.ts", "src/android-native-pipeline.ts"]
+  "include": ["src/index.ts", "src/bin.ts", "src/android-native-pipeline.ts", "src/repo-source.ts", "src/run-from-repo.ts"]
 }

@@ -21,7 +21,8 @@ Phase 1 implementation has started. The repository now contains the full enginee
 
 - `@honeypie/core`: config loading, typed errors, plugin registry, checkpointed orchestrator, deterministic local AI gateway, and a minimal local-only (synthetic) pipeline for frameworks without a real backend yet.
 - **Real native Android/Compose pipeline** (`honeypie run --yes --android-native`): builds the app with Gradle, installs and launches it on an attached device or emulator, explores it with a deterministic `uiautomator`-driven breadth-first crawl, captures real screenshots via `adb screencap`, and renders them into device-frame mockups — no placeholders.
-- `@honeypie/cli`: `honeypie run --yes --local-only`, `honeypie run --yes --android-native`, `honeypie doctor`, and `honeypie config init`.
+- `@honeypie/cli`: `honeypie run --yes --local-only`, `honeypie run --yes --android-native`, `honeypie run --yes --repo <git-url>`, `honeypie doctor`, and `honeypie config init`.
+- **`--repo <url>`**: paste any git repo URL instead of pointing at a local folder — HoneyPie shallow-clones it to a cache dir, auto-detects whether it's a native Android/Compose project (real pipeline) or something else (local-only fallback), and runs accordingly. Verified against real, well-known repos: [`flutter/samples`](https://github.com/flutter/samples) (correctly detected as Flutter, honest local-only fallback since Flutter capture isn't built yet) and [`android/sunflower`](https://github.com/android/sunflower) (Google's official sample app — real build, install, 3-screen capture, real screenshots).
 - `@honeypie/plugin-sdk`: initial public plugin interfaces.
 - `examples/flutter-counter-plus` and `examples/android-compose-demo`: fixture apps used for testing both pipelines.
 
