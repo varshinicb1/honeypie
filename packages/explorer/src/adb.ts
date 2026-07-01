@@ -19,6 +19,10 @@ function resolveAdbPath(): string {
   return "adb";
 }
 
+function isBinaryNotFound(error: unknown): boolean {
+  return Boolean(error) && typeof error === "object" && (error as { code?: string }).code === "ENOENT";
+}
+
 async function runAdb(args: string[], opts: { encoding?: "utf8" | "buffer" } = {}): Promise<{ stdout: string | Buffer; stderr: string }> {
   try {
     const result = await execFileAsync(resolveAdbPath(), args, {
@@ -27,6 +31,11 @@ async function runAdb(args: string[], opts: { encoding?: "utf8" | "buffer" } = {
     });
     return result as { stdout: string | Buffer; stderr: string };
   } catch (error) {
+    if (isBinaryNotFound(error)) {
+      throw new HoneyPieError(`adb binary not found (looked for it via ANDROID_HOME/ANDROID_SDK_ROOT and PATH)`, "EXPLORER_ADB_NOT_FOUND", {
+        args
+      });
+    }
     const record = error as { stdout?: string | Buffer; stderr?: string; message?: string };
     throw new HoneyPieError(
       `adb ${args.join(" ")} failed: ${record.stderr || record.message || String(error)}`,
@@ -37,8 +46,16 @@ async function runAdb(args: string[], opts: { encoding?: "utf8" | "buffer" } = {
 }
 
 export async function listDevices(): Promise<string[]> {
-  const { stdout } = await runAdb(["devices"]);
-  return (stdout as string)
+  // No `adb` binary at all (no Android SDK on this machine) is a normal environment state for
+  // the pipeline's preflight check — equivalent to "no devices", not a hard failure.
+  let stdout: string;
+  try {
+    stdout = (await runAdb(["devices"])).stdout as string;
+  } catch (error) {
+    if (error instanceof HoneyPieError && error.code === "EXPLORER_ADB_NOT_FOUND") return [];
+    throw error;
+  }
+  return stdout
     .split(/\r?\n/)
     .slice(1)
     .map((line) => line.trim())

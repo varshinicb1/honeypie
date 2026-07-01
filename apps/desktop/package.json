@@ -16,6 +16,7 @@
     "@tauri-apps/plugin-dialog": "^2"
   },
   "devDependencies": {
+    "@honeypie/cli": "workspace:*",
     "@tauri-apps/cli": "^2",
     "esbuild": "^0.28.1",
     "vite": "^6.0.3",
