@@ -11,6 +11,10 @@ describe("buildDebugApk", () => {
       console.warn("skipping: examples/android-compose-demo not found relative to package");
       return;
     }
+    if (!process.env.ANDROID_HOME && !process.env.ANDROID_SDK_ROOT) {
+      console.warn("skipping: no Android SDK on this machine (ANDROID_HOME/ANDROID_SDK_ROOT unset)");
+      return;
+    }
     const result = await buildDebugApk(demoProjectDir);
     expect(existsSync(result.apkPath)).toBe(true);
     expect(result.packageName).toBe("dev.honeypie.compose.demo");
