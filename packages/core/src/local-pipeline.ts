@@ -4,42 +4,12 @@ import { createAIGateway } from "./ai.js";
 import type { ConfigCliOverrides } from "./config.js";
 import { loadConfig } from "./config.js";
 import { ConfigError } from "./errors.js";
+import type { HoneyPieManifest } from "./manifest.js";
 import { PipelineOrchestrator, type PipelineStage } from "./orchestrator.js";
 
 export interface RunLocalOnlyPipelineOptions {
   projectRoot: string;
   cliOverrides?: ConfigCliOverrides;
-}
-
-export interface HoneyPieManifest {
-  version: "1.0";
-  generatedAt: string;
-  app: {
-    framework: string;
-    packageName: string;
-    appName: string;
-  };
-  exploration: {
-    screensDiscovered: number;
-    durationMs: number;
-  };
-  vision: {
-    captured: number;
-    selected: number;
-    rejected: number;
-  };
-  aiUsage: {
-    provider: string;
-    totalTokens: number;
-    estimatedCostUsd: number;
-  };
-  assets: Array<{
-    path: string;
-    sourceScreen: string;
-    theme?: string;
-    target: string;
-  }>;
-  errors: unknown[];
 }
 
 export interface LocalPipelineResult {

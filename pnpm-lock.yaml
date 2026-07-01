@@ -29,9 +29,18 @@ importers:
 
   packages/cli:
     dependencies:
+      '@honeypie/builder':
+        specifier: workspace:*
+        version: link:../builder
       '@honeypie/core':
         specifier: workspace:*
         version: link:../core
+      '@honeypie/explorer':
+        specifier: workspace:*
+        version: link:../explorer
+      '@honeypie/publisher':
+        specifier: workspace:*
+        version: link:../publisher
 
   packages/copywriter:
     dependencies:

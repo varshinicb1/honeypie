@@ -19,6 +19,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@honeypie/core": "workspace:*"
+    "@honeypie/core": "workspace:*",
+    "@honeypie/builder": "workspace:*",
+    "@honeypie/explorer": "workspace:*",
+    "@honeypie/publisher": "workspace:*"
   }
 }

@@ -11,3 +11,7 @@ honeypie.config.local.json
 build/
 examples/*/dist/
 examples/*/.honeypie/
+local.properties
+.gradle/
+*.iml
+.idea/

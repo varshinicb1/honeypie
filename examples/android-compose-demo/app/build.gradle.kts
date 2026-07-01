@@ -1,11 +1,13 @@
 plugins {
   id("com.android.application")
   id("org.jetbrains.kotlin.android")
+  id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
   namespace = "dev.honeypie.compose.demo"
   compileSdk = 35
+  ndkVersion = "26.1.10909125"
 
   defaultConfig {
     applicationId = "dev.honeypie.compose.demo"
@@ -17,6 +19,14 @@ android {
 
   buildFeatures {
     compose = true
+  }
+
+  compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+  }
+  kotlinOptions {
+    jvmTarget = "17"
   }
 }
 

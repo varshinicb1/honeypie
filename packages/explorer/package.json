@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --config ../../vitest.config.ts src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
   "dependencies": {
     "@honeypie/core": "workspace:*",
     "@honeypie/builder": "workspace:*"
