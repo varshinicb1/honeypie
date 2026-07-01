@@ -17,16 +17,24 @@ Every mobile developer eventually hits the same wall: the app works, but shippin
 
 ## Status
 
-Phase 1 implementation has started. The repository now contains the full engineering specification plus a pnpm/Turborepo TypeScript monorepo with the first working local-only pipeline slice:
+Phase 1 implementation has started. The repository now contains the full engineering specification plus a pnpm/Turborepo TypeScript monorepo with two working pipelines:
 
-- `@honeypie/core`: config loading, typed errors, plugin registry, checkpointed orchestrator, deterministic local AI gateway, and a minimal local-only pipeline.
-- `@honeypie/cli`: `honeypie run --yes --local-only`, `honeypie doctor`, and `honeypie config init`.
+- `@honeypie/core`: config loading, typed errors, plugin registry, checkpointed orchestrator, deterministic local AI gateway, and a minimal local-only (synthetic) pipeline for frameworks without a real backend yet.
+- **Real native Android/Compose pipeline** (`honeypie run --yes --android-native`): builds the app with Gradle, installs and launches it on an attached device or emulator, explores it with a deterministic `uiautomator`-driven breadth-first crawl, captures real screenshots via `adb screencap`, and renders them into device-frame mockups — no placeholders.
+- `@honeypie/cli`: `honeypie run --yes --local-only`, `honeypie run --yes --android-native`, `honeypie doctor`, and `honeypie config init`.
 - `@honeypie/plugin-sdk`: initial public plugin interfaces.
-- `examples/flutter-counter-plus` and `examples/android-compose-demo`: fixture apps for Phase 1 testing.
+- `examples/flutter-counter-plus` and `examples/android-compose-demo`: fixture apps used for testing both pipelines.
 
-Android emulator exploration is still in progress. `honeypie doctor` reports missing local Android tooling clearly when ADB/emulator are not available.
+Real screenshot and mockup output, captured end-to-end from `examples/android-compose-demo` running on a live Android emulator:
 
-The current local-only run also writes `dist/readme/hero.svg` and updates the target repository's `README.md` inside a guarded block:
+<p>
+  <img src="assets/screenshots/android-compose-demo-screenshot.png" alt="Real captured screenshot of the Compose demo app" width="220" />
+  <img src="assets/screenshots/android-compose-demo-mockup.svg" alt="Real device-frame mockup generated from the captured screenshot" width="220" />
+</p>
+
+Flutter support, AI-driven exploration/copywriting, and vision-based screenshot scoring are still unimplemented — the Android-native pipeline above uses deterministic (non-AI) logic throughout. `honeypie doctor` reports missing local Android tooling clearly when ADB/emulator are not available.
+
+The current local-only run also writes `dist/readme/hero.svg` and updates the target repository's `README.md` inside a guarded block; the Android-native pipeline does the same with a real mockup instead:
 
 ```md
 <!-- honeypie:start -->
@@ -42,6 +50,13 @@ Repeated runs replace only that block.
 pnpm install
 pnpm build
 node packages/cli/dist/bin.js run --yes --local-only --dest dist
+```
+
+For the real Android pipeline, attach a device or start an emulator first (`adb devices` should list it), then run from the Android project directory:
+
+```bash
+cd examples/android-compose-demo
+node ../../packages/cli/dist/bin.js run --yes --android-native --dest dist
 ```
 
 Try the fixture apps by running the CLI from the target app directory:
