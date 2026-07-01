@@ -26,6 +26,16 @@ Phase 1 implementation has started. The repository now contains the full enginee
 
 Android emulator exploration is still in progress. `honeypie doctor` reports missing local Android tooling clearly when ADB/emulator are not available.
 
+The current local-only run also writes `dist/readme/hero.svg` and updates the target repository's `README.md` inside a guarded block:
+
+```md
+<!-- honeypie:start -->
+...
+<!-- honeypie:end -->
+```
+
+Repeated runs replace only that block.
+
 ## Quick Start
 
 ```bash

@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { createAIGateway } from "./ai.js";
 import type { ConfigCliOverrides } from "./config.js";
@@ -104,9 +104,9 @@ export async function runLocalOnlyPipeline(options: RunLocalOnlyPipelineOptions)
 }
 
 async function detectProject(projectRoot: string): Promise<BuildArtifact> {
-  const pubspec = await readTextIfExists(join(projectRoot, "pubspec.yaml"));
-  if (pubspec) {
-    const name = matchYamlScalar(pubspec, "name") ?? basename(projectRoot);
+  const flutterMarker = await findProjectMarker(projectRoot, "pubspec.yaml");
+  if (flutterMarker) {
+    const name = matchYamlScalar(flutterMarker.content, "name") ?? basename(flutterMarker.dir);
     return {
       app: {
         framework: "flutter",
@@ -115,9 +115,9 @@ async function detectProject(projectRoot: string): Promise<BuildArtifact> {
       }
     };
   }
-  const gradle = await readTextIfExists(join(projectRoot, "settings.gradle.kts")) ?? await readTextIfExists(join(projectRoot, "settings.gradle"));
-  if (gradle) {
-    const name = basename(projectRoot);
+  const gradleMarker = await findFirstProjectMarker(projectRoot, ["settings.gradle.kts", "settings.gradle"]);
+  if (gradleMarker) {
+    const name = matchGradleAssignment(gradleMarker.content, "rootProject.name") ?? basename(gradleMarker.dir);
     return {
       app: {
         framework: "android-native",
@@ -127,6 +127,56 @@ async function detectProject(projectRoot: string): Promise<BuildArtifact> {
     };
   }
   throw new ConfigError("No supported Flutter or Android project markers found", { projectRoot });
+}
+
+interface ProjectMarker {
+  dir: string;
+  content: string;
+}
+
+async function findFirstProjectMarker(projectRoot: string, filenames: string[]): Promise<ProjectMarker | null> {
+  for (const filename of filenames) {
+    const marker = await findProjectMarker(projectRoot, filename);
+    if (marker) return marker;
+  }
+  return null;
+}
+
+async function findProjectMarker(projectRoot: string, filename: string): Promise<ProjectMarker | null> {
+  const rootContent = await readTextIfExists(join(projectRoot, filename));
+  if (rootContent) return { dir: projectRoot, content: rootContent };
+  const candidates = await findNestedFiles(projectRoot, filename, 3);
+  const first = candidates[0];
+  if (!first) return null;
+  return { dir: first.dir, content: await readFile(first.path, "utf8") };
+}
+
+async function findNestedFiles(root: string, filename: string, maxDepth: number): Promise<Array<{ dir: string; path: string }>> {
+  const ignored = new Set([".git", ".honeypie", "node_modules", "build", "dist", ".dart_tool"]);
+  const results: Array<{ dir: string; path: string }> = [];
+
+  async function visit(dir: string, depth: number): Promise<void> {
+    if (depth > maxDepth) return;
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isFile() && entry.name === filename) {
+        results.push({ dir, path: fullPath });
+      }
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || ignored.has(entry.name)) continue;
+      await visit(join(dir, entry.name), depth + 1);
+    }
+  }
+
+  await visit(root, 0);
+  return results.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 async function createSyntheticExploration(projectRoot: string, build: BuildArtifact): Promise<ExplorationArtifact> {
@@ -171,13 +221,22 @@ async function publishMinimalDist(input: {
   aiUsage: HoneyPieManifest["aiUsage"];
 }): Promise<HoneyPieManifest> {
   await mkdir(join(input.destination, "screenshots"), { recursive: true });
+  await mkdir(join(input.destination, "readme"), { recursive: true });
   await mkdir(join(input.destination, "metadata"), { recursive: true });
   const assetPath = "screenshots/home.txt";
+  const readmeAssetPath = "readme/hero.svg";
   await writeFile(join(input.destination, assetPath), `${input.app.appName}\nSelected local-only screenshot artifact\n`);
+  await writeFile(join(input.destination, readmeAssetPath), renderReadmeHeroSvg(input.app.appName));
   await writeFile(
     join(input.destination, "metadata", "store-listing.json"),
     `${JSON.stringify({ headline: input.app.appName, subtitle: "Generated in local-only mode" }, null, 2)}\n`
   );
+  await updateReadme({
+    projectRoot: join(input.destination, ".."),
+    appName: input.app.appName,
+    destinationName: basename(input.destination),
+    assetPath: readmeAssetPath
+  });
   const manifest: HoneyPieManifest = {
     version: "1.0",
     generatedAt: new Date().toISOString(),
@@ -192,12 +251,56 @@ async function publishMinimalDist(input: {
       rejected: input.vision.rejected.length
     },
     aiUsage: input.aiUsage,
-    assets: [{ path: assetPath, sourceScreen: "home", target: "screenshots" }],
+    assets: [
+      { path: assetPath, sourceScreen: "home", target: "screenshots" },
+      { path: readmeAssetPath, sourceScreen: "home", target: "readme", theme: "local-only" }
+    ],
     errors: []
   };
   await writeFile(join(input.destination, "honeypie.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   await writeFile(join(input.destination, "report.html"), renderReport(manifest));
   return manifest;
+}
+
+async function updateReadme(input: { projectRoot: string; appName: string; destinationName: string; assetPath: string }): Promise<void> {
+  const readmePath = join(input.projectRoot, "README.md");
+  const existing = await readTextIfExists(readmePath);
+  const base = existing ?? `# ${input.appName}\n`;
+  const imagePath = `${input.destinationName}/${input.assetPath}`.replace(/\\/g, "/");
+  const block = [
+    "<!-- honeypie:start -->",
+    "## App Preview",
+    "",
+    `![${input.appName} app mockup](${imagePath})`,
+    "",
+    "_Generated by HoneyPie in local-only mode._",
+    "<!-- honeypie:end -->"
+  ].join("\n");
+  const markerPattern = /<!-- honeypie:start -->[\s\S]*?<!-- honeypie:end -->/;
+  const next = markerPattern.test(base) ? base.replace(markerPattern, block) : appendReadmeBlock(base, block);
+  await writeFile(readmePath, ensureTrailingNewline(next));
+}
+
+function appendReadmeBlock(readme: string, block: string): string {
+  return `${readme.trimEnd()}\n\n${block}`;
+}
+
+function ensureTrailingNewline(value: string): string {
+  return value.endsWith("\n") ? value : `${value}\n`;
+}
+
+function renderReadmeHeroSvg(appName: string): string {
+  const title = escapeHtml(appName);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="${title} app mockup">
+  <rect width="1280" height="720" fill="#101828"/>
+  <rect x="470" y="70" width="340" height="580" rx="42" fill="#111827" stroke="#f97316" stroke-width="8"/>
+  <rect x="500" y="120" width="280" height="480" rx="24" fill="#fff7ed"/>
+  <text x="640" y="270" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="700" fill="#1f2937">${title}</text>
+  <text x="640" y="330" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" fill="#4b5563">Generated app preview</text>
+  <rect x="550" y="390" width="180" height="52" rx="26" fill="#f97316"/>
+  <text x="640" y="424" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#ffffff">HoneyPie</text>
+</svg>
+`;
 }
 
 function renderReport(manifest: HoneyPieManifest): string {
@@ -231,6 +334,12 @@ function matchYamlScalar(source: string, key: string): string | null {
   const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = new RegExp(`^${escaped}:\\s*([^\\r\\n#]+)`, "m").exec(source);
   return match?.[1]?.trim().replace(/^["']|["']$/g, "") ?? null;
+}
+
+function matchGradleAssignment(source: string, key: string): string | null {
+  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = new RegExp(`${escaped}\\s*=\\s*["']([^"']+)["']`).exec(source);
+  return match?.[1]?.trim() ?? null;
 }
 
 function titleCase(value: string): string {

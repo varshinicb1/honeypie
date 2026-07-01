@@ -51,6 +51,20 @@ dist/
 └── honeypie.json
 ```
 
+## README Mutation
+
+When the `readme` target is enabled, HoneyPie writes README assets under `dist/readme/` and updates the target repository's `README.md` inside a guarded block:
+
+```md
+<!-- honeypie:start -->
+## App Preview
+
+![App Name app mockup](dist/readme/hero.svg)
+<!-- honeypie:end -->
+```
+
+If the block already exists, HoneyPie replaces only that block. If `README.md` does not exist, HoneyPie creates a minimal one. This behavior is intentionally idempotent and follows ADR-006 in `docs/24-decision-log.md`.
+
 ## Manifest — `honeypie.json`
 
 The single source of truth for what was generated, consumed both by `report.html` and by any CI step that wants to programmatically inspect results.

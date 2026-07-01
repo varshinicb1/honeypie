@@ -1,4 +1,4 @@
-import { access, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { runLocalOnlyPipeline, type ConfigCliOverrides, defaultConfig } from "@honeypie/core";
 import { spawnSync } from "node:child_process";
@@ -24,7 +24,7 @@ export async function runCli(argv: string[], env: CliEnvironment = { cwd: proces
       }
       const result = await runLocalOnlyPipeline({ projectRoot: env.cwd, cliOverrides: parsed.overrides });
       const manifestPath = relative(env.cwd, join(result.destination, "honeypie.json")).replace(/\\/g, "/");
-      return { exitCode: 0, stdout: `Generated ${manifestPath}\n`, stderr: "" };
+      return { exitCode: 0, stdout: `Generated ${manifestPath}\nUpdated README.md with HoneyPie mockup block\n`, stderr: "" };
     }
     if (command === "doctor") {
       return runDoctor();

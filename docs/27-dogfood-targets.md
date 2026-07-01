@@ -6,7 +6,10 @@ HoneyPie should be tested against real mobile repositories in addition to mainta
 
 | Repository | Type | Current Result |
 |---|---|---|
-| `varshinicb1/Parakram-edge` | Native Android / Gradle / Compose-style Kotlin UI | `honeypie run --yes --local-only --dest dist-honeypie` produces a local-only manifest and offline report with the current Phase 1 synthetic exploration path. Real emulator exploration is blocked until ADB/emulator tooling is available locally. |
+| `varshinicb1/Parakram-edge` | Native Android / Gradle / Compose-style Kotlin UI | `honeypie run --yes --local-only --dest dist-honeypie` produces a local-only manifest, offline report, README mockup SVG, and guarded README update with the current Phase 1 synthetic exploration path. Real emulator exploration is blocked until ADB/emulator tooling is available locally. |
+| `varshinicb1/craft_app` | Flutter | Root run detects `pubspec.yaml`, writes `dist-honeypie/readme/hero.svg`, and inserts the guarded README preview block. |
+| `varshinicb1/pcb-operations` | Nested Flutter app under `pcb_operations/` | Root run detects nested `pubspec.yaml`, creates root `README.md` when absent, writes `dist-honeypie/readme/hero.svg`, and inserts the guarded README preview block. |
+| `varshinicb1/coka-token` | Nested Flutter app under `app/coka_billing/` | Root run detects nested `pubspec.yaml`, writes `dist-honeypie/readme/hero.svg`, and inserts or refreshes the guarded README preview block. |
 
 ## Reproduction
 

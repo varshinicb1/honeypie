@@ -64,6 +64,18 @@ Format: each entry is a lightweight Architecture Decision Record — Context, De
 
 ---
 
+## ADR-006: README target may update README.md using guarded markers
+
+**Context.** The original export pipeline produces README-ready assets under `dist/readme/`, but the product goal is stronger: after installing/running HoneyPie in a repository, the project README should show the generated mockups automatically.
+
+**Decision.** The README export target may edit `README.md` by inserting or replacing only a guarded HoneyPie block delimited by `<!-- honeypie:start -->` and `<!-- honeypie:end -->`. If no README exists, HoneyPie creates a minimal one. This behavior is enabled for the README target and remains idempotent across runs.
+
+**Consequences.** HoneyPie becomes more useful in the default local workflow because generated assets become visible immediately in GitHub. The marker boundary limits accidental damage to hand-written README content, but repo mutation still requires careful testing and clear CLI output. Future interactive modes can ask for confirmation before committing these edits.
+
+**Status.** Accepted.
+
+---
+
 ## Template for New ADRs
 
 ```
