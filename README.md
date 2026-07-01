@@ -44,6 +44,10 @@ The current local-only run also writes `dist/readme/hero.svg` and updates the ta
 
 Repeated runs replace only that block.
 
+### Desktop installer
+
+`apps/desktop` is a one-click Windows installer (`.msi`, built with [Tauri](https://tauri.app)) that bundles a portable Node.js runtime as a sidecar, so end users need **no Node, pnpm, or Rust installed** — pick a project folder, click Run, get a real `dist/`. It always runs the local-only pipeline, which has no external dependencies; the Android-native pipeline still needs the Android SDK/emulator on the machine, which no installer can bundle away. See `apps/desktop/README.md` for build instructions. Verified: real MSI build, payload extraction, and the exact bundled Node+CLI producing real output — installing per-machine MSIs requires Administrator privileges on Windows, which is standard for the format, not specific to this app.
+
 ## Quick Start
 
 ```bash
