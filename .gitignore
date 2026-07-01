@@ -15,3 +15,7 @@ local.properties
 .gradle/
 *.iml
 .idea/
+apps/*/src-tauri/target/
+apps/*/src-tauri/gen/
+apps/*/src-tauri/binaries/
+apps/*/src-tauri/resources/*.mjs
