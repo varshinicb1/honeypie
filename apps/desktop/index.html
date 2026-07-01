@@ -9,16 +9,49 @@
   </head>
 
   <body>
-    <main class="container">
-      <h1>🍯 HoneyPie</h1>
-      <p>Pick your app's project folder and generate marketing assets — no Node, no setup required.</p>
+    <main class="app">
+      <header class="hero">
+        <h1>🍯 HoneyPie</h1>
+        <p>From source code to store-ready screenshots. No setup required.</p>
+      </header>
 
-      <div class="row">
-        <button id="pick-folder-btn" type="button">Choose project folder…</button>
-        <button id="run-btn" type="button" disabled>Run HoneyPie</button>
-      </div>
-      <p id="selected-folder"></p>
-      <pre id="log"></pre>
+      <section id="drop-zone" class="drop-zone">
+        <div class="drop-zone-inner">
+          <p class="drop-zone-title">Drag &amp; drop a project folder</p>
+          <p class="drop-zone-sub">or</p>
+          <button id="pick-folder-btn" type="button" class="btn btn-secondary">Choose a folder…</button>
+        </div>
+      </section>
+
+      <div class="divider"><span>or paste a GitHub link</span></div>
+
+      <form id="repo-form" class="repo-form">
+        <input id="repo-input" type="text" placeholder="https://github.com/owner/repo" autocomplete="off" />
+        <button id="repo-btn" type="submit" class="btn btn-primary">Generate</button>
+      </form>
+
+      <p id="selected-path" class="selected-path"></p>
+
+      <section id="status" class="status" hidden>
+        <div class="spinner"></div>
+        <p id="status-text">Running HoneyPie…</p>
+      </section>
+
+      <section id="error-box" class="error-box" hidden>
+        <p id="error-text"></p>
+      </section>
+
+      <section id="gallery" class="gallery" hidden>
+        <div class="gallery-header">
+          <p id="gallery-summary"></p>
+          <button id="open-folder-btn" type="button" class="btn btn-secondary">Open output folder</button>
+        </div>
+        <div id="gallery-grid" class="gallery-grid"></div>
+        <details class="log-details">
+          <summary>Full log</summary>
+          <pre id="log-output"></pre>
+        </details>
+      </section>
     </main>
   </body>
 </html>

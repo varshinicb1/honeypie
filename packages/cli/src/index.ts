@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { runLocalOnlyPipeline, type ConfigCliOverrides, defaultConfig } from "@honeypie/core";
 import { spawnSync } from "node:child_process";
 import { runAndroidNativePipeline } from "./android-native-pipeline.js";
+import { runFromRepo } from "./run-from-repo.js";
 
 export interface CliEnvironment {
   cwd: string;
@@ -22,6 +23,19 @@ export async function runCli(argv: string[], env: CliEnvironment = { cwd: proces
       const parsed = parseRunArgs(args);
       if (parsed.interactive) {
         return { exitCode: 0, stdout: "HoneyPie TUI is not implemented yet; use honeypie run --yes --local-only.\n", stderr: "" };
+      }
+      if (parsed.repoUrl) {
+        const result = await runFromRepo({
+          url: parsed.repoUrl,
+          cliOverrides: parsed.overrides,
+          ...(parsed.overrides.maxScreens !== undefined ? { maxNodes: parsed.overrides.maxScreens } : {})
+        });
+        const manifestPath = join(result.destination, "honeypie.json").replace(/\\/g, "/");
+        return {
+          exitCode: 0,
+          stdout: `Cloned ${parsed.repoUrl}\nDetected framework: ${result.framework}\nGenerated ${manifestPath}\n`,
+          stderr: ""
+        };
       }
       const result = parsed.androidNative
         ? await runAndroidNativePipeline({
@@ -47,10 +61,11 @@ export async function runCli(argv: string[], env: CliEnvironment = { cwd: proces
   }
 }
 
-function parseRunArgs(argv: string[]): { interactive: boolean; androidNative: boolean; overrides: ConfigCliOverrides } {
+function parseRunArgs(argv: string[]): { interactive: boolean; androidNative: boolean; repoUrl?: string; overrides: ConfigCliOverrides } {
   const overrides: ConfigCliOverrides = {};
   let interactive = argv.length === 0;
   let androidNative = false;
+  let repoUrl: string | undefined;
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     switch (arg) {
@@ -62,6 +77,10 @@ function parseRunArgs(argv: string[]): { interactive: boolean; androidNative: bo
         break;
       case "--android-native":
         androidNative = true;
+        break;
+      case "--repo":
+        repoUrl = requireValue(argv, ++index, "--repo");
+        interactive = false;
         break;
       case "--local-only":
         overrides.localOnly = true;
@@ -90,7 +109,7 @@ function parseRunArgs(argv: string[]): { interactive: boolean; androidNative: bo
         }
     }
   }
-  return { interactive, androidNative, overrides };
+  return { interactive, androidNative, ...(repoUrl !== undefined ? { repoUrl } : {}), overrides };
 }
 
 function requireValue(argv: string[], index: number, flag: string): string {

@@ -14,8 +14,11 @@
     "windows": [
       {
         "title": "HoneyPie",
-        "width": 900,
-        "height": 640
+        "width": 960,
+        "height": 720,
+        "minWidth": 720,
+        "minHeight": 560,
+        "dragDropEnabled": true
       }
     ],
     "security": {
