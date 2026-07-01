@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="35%" cy="30%" r="80%">
+      <stop offset="0%" stop-color="#3a2418"/>
+      <stop offset="100%" stop-color="#1a1220"/>
+    </radialGradient>
+    <linearGradient id="jarBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffc14d"/>
+      <stop offset="55%" stop-color="#f9a825"/>
+      <stop offset="100%" stop-color="#e8890c"/>
+    </linearGradient>
+    <linearGradient id="jarShine" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="lidGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8a4a1c"/>
+      <stop offset="100%" stop-color="#6b3410"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- drip shadow -->
+  <ellipse cx="256" cy="430" rx="120" ry="18" fill="#000000" opacity="0.25"/>
+
+  <!-- honey pot body -->
+  <path d="M146 250
+           C146 220 176 206 256 206
+           C336 206 366 220 366 250
+           L352 392
+           C348 416 316 434 256 434
+           C196 434 164 416 160 392
+           Z"
+        fill="url(#jarBody)" stroke="#c96f08" stroke-width="6"/>
+
+  <!-- honey drip highlight -->
+  <path d="M146 250 C146 220 176 206 256 206 C336 206 366 220 366 250
+           L360 268 C336 250 296 242 256 242 C216 242 176 250 152 268 Z"
+        fill="url(#jarShine)"/>
+
+  <!-- drip on side -->
+  <path d="M352 300 c10 14 10 30 -2 44 c-8 10 -8 20 2 28" fill="none" stroke="#c96f08" stroke-width="6" stroke-linecap="round" opacity="0.55"/>
+
+  <!-- lid band -->
+  <path d="M136 234 C136 208 180 192 256 192 C332 192 376 208 376 234
+           C376 258 332 274 256 274 C180 274 136 258 136 234 Z"
+        fill="url(#lidGrad)" stroke="#502707" stroke-width="6"/>
+
+  <!-- lid knot / gingham tie -->
+  <path d="M226 200 L286 200 L296 176 L216 176 Z" fill="#f6efe4" stroke="#502707" stroke-width="5"/>
+  <path d="M226 200 L216 176 M286 200 L296 176" stroke="#502707" stroke-width="4" fill="none"/>
+  <rect x="238" y="182" width="12" height="12" fill="#e0592b"/>
+  <rect x="262" y="182" width="12" height="12" fill="#e0592b"/>
+
+  <!-- face -->
+  <circle cx="222" cy="330" r="11" fill="#3a2418"/>
+  <circle cx="290" cy="330" r="11" fill="#3a2418"/>
+  <circle cx="226" cy="326" r="3.5" fill="#ffffff"/>
+  <circle cx="294" cy="326" r="3.5" fill="#ffffff"/>
+  <path d="M232 360 Q256 380 280 360" stroke="#3a2418" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <circle cx="196" cy="352" r="14" fill="#ff8a65" opacity="0.55"/>
+  <circle cx="316" cy="352" r="14" fill="#ff8a65" opacity="0.55"/>
+
+  <!-- bee -->
+  <g transform="translate(352 150) rotate(-12)">
+    <ellipse cx="18" cy="-6" rx="20" ry="14" fill="#fefefe" opacity="0.85" transform="rotate(-18 18 -6)"/>
+    <ellipse cx="-4" cy="-14" rx="16" ry="11" fill="#fefefe" opacity="0.85" transform="rotate(10 -4 -14)"/>
+    <ellipse cx="0" cy="0" rx="22" ry="17" fill="#2b2118"/>
+    <path d="M-20 -6 h40 M-20 4 h40" stroke="#ffcb3d" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="-20" cy="-2" r="9" fill="#2b2118"/>
+    <path d="M-24 -8 l-6 -6 M-16 -8 l4 -8" stroke="#2b2118" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- sparkle -->
+  <path d="M126 168 l6 16 16 6 -16 6 -6 16 -6 -16 -16 -6 16 -6 Z" fill="#ffe08a"/>
+</svg>
