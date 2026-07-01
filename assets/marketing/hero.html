@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face { font-family: system; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1600px;
+    height: 900px;
+    font-family: "Segoe UI", Inter, Arial, sans-serif;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(249,115,22,0.18), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(249,115,22,0.10), transparent 50%),
+      linear-gradient(160deg, #1a1220 0%, #241a2e 55%, #171018 100%);
+    color: #f3ede4;
+    overflow: hidden;
+    position: relative;
+  }
+  .wrap {
+    display: flex;
+    height: 100%;
+    padding: 80px 90px;
+    align-items: center;
+    gap: 60px;
+  }
+  .left { flex: 1.05; }
+  .brand { display: flex; align-items: center; gap: 22px; margin-bottom: 46px; }
+  .brand img { width: 84px; height: 84px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+  .brand h1 { font-size: 48px; font-weight: 800; letter-spacing: -1px; }
+  .brand h1 span { color: #f97316; }
+  .headline { font-size: 46px; font-weight: 700; line-height: 1.18; margin-bottom: 26px; max-width: 720px; }
+  .headline em { color: #ffb15c; font-style: normal; }
+  .sub { font-size: 22px; color: #cbb8a8; max-width: 620px; line-height: 1.5; margin-bottom: 48px; }
+  .steps { display: flex; flex-direction: column; gap: 20px; }
+  .step { display: flex; align-items: center; gap: 18px; }
+  .step .num {
+    width: 40px; height: 40px; border-radius: 12px; background: rgba(249,115,22,0.15);
+    border: 1px solid rgba(249,115,22,0.4); color: #ffb15c; font-weight: 700; font-size: 18px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .step p { font-size: 20px; color: #e9ddd0; }
+  .step b { color: #ffffff; }
+
+  .right { position: relative; width: 480px; display: flex; justify-content: center; }
+  .phone {
+    width: 300px; border-radius: 40px; background: #0d0d0d; padding: 18px;
+    box-shadow: 0 40px 90px rgba(0,0,0,0.55), 0 0 0 2px rgba(249,115,22,0.35);
+    transform: rotate(3deg);
+  }
+  .phone img { width: 100%; border-radius: 24px; display: block; }
+  .badge {
+    position: absolute; top: -18px; left: 50%; transform: translateX(-50%) rotate(3deg);
+    background: #f97316; color: #1a1220; font-weight: 800; font-size: 15px;
+    padding: 8px 18px; border-radius: 999px; box-shadow: 0 8px 20px rgba(249,115,22,0.45);
+    white-space: nowrap;
+  }
+  .caption { text-align: center; margin-top: 26px; font-size: 15px; color: #a8927f; letter-spacing: 0.4px; }
+  .footer {
+    position: absolute; bottom: 34px; left: 90px; right: 90px;
+    display: flex; justify-content: space-between; font-size: 16px; color: #8a7666;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="left">
+      <div class="brand">
+        <img src="../logo/honeypie-logo-1024.png" />
+        <h1>Honey<span>Pie</span></h1>
+      </div>
+      <div class="headline">From source code to <em>store-ready screenshots.</em><br/>Automatically.</div>
+      <div class="sub">Drop a project folder or paste a repo link. HoneyPie builds your app for real, explores it, and captures real screenshots &amp; device mockups — no manual screenshotting, no Figma.</div>
+      <div class="steps">
+        <div class="step"><div class="num">1</div><p><b>Drop a folder</b> or paste a GitHub link</p></div>
+        <div class="step"><div class="num">2</div><p><b>HoneyPie builds &amp; explores</b> your real app</p></div>
+        <div class="step"><div class="num">3</div><p><b>Get real screenshots</b> + mockups, instantly</p></div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="badge">REAL SCREENSHOT — NOT A MOCKUP</div>
+      <div>
+        <div class="phone">
+          <img src="../screenshots/android-compose-demo-screenshot.png" />
+        </div>
+        <div class="caption">Captured live from a real build on a real emulator</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span>github.com/varshinicb1/honeypie</span>
+    <span>Open source · Windows installer · Zero setup</span>
+  </div>
+</body>
+</html>
