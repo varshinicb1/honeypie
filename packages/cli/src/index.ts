@@ -1,0 +1,117 @@
+import { access, writeFile } from "node:fs/promises";
+import { join, relative } from "node:path";
+import { runLocalOnlyPipeline, type ConfigCliOverrides, defaultConfig } from "@honeypie/core";
+import { spawnSync } from "node:child_process";
+
+export interface CliEnvironment {
+  cwd: string;
+}
+
+export interface CliResult {
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+}
+
+export async function runCli(argv: string[], env: CliEnvironment = { cwd: process.cwd() }): Promise<CliResult> {
+  const [command = "run", ...rest] = argv.length === 0 ? ["run", "--interactive"] : argv;
+  try {
+    if (command === "run" || command === "ship") {
+      const args = command === "ship" ? ["--yes", ...rest] : rest;
+      const parsed = parseRunArgs(args);
+      if (parsed.interactive) {
+        return { exitCode: 0, stdout: "HoneyPie TUI is not implemented yet; use honeypie run --yes --local-only.\n", stderr: "" };
+      }
+      const result = await runLocalOnlyPipeline({ projectRoot: env.cwd, cliOverrides: parsed.overrides });
+      const manifestPath = relative(env.cwd, join(result.destination, "honeypie.json")).replace(/\\/g, "/");
+      return { exitCode: 0, stdout: `Generated ${manifestPath}\n`, stderr: "" };
+    }
+    if (command === "doctor") {
+      return runDoctor();
+    }
+    if (command === "config" && rest[0] === "init") {
+      const path = join(env.cwd, "honeypie.config.json");
+      await writeFile(path, `${JSON.stringify(defaultConfig, null, 2)}\n`, { flag: "wx" });
+      return { exitCode: 0, stdout: "Created honeypie.config.json\n", stderr: "" };
+    }
+    return { exitCode: 1, stdout: "", stderr: `Unknown command: ${command}\n` };
+  } catch (error) {
+    return { exitCode: "code" in asRecord(error) && asRecord(error).code === "CONFIG_INVALID" ? 10 : 1, stdout: "", stderr: `${formatError(error)}\n` };
+  }
+}
+
+function parseRunArgs(argv: string[]): { interactive: boolean; overrides: ConfigCliOverrides } {
+  const overrides: ConfigCliOverrides = {};
+  let interactive = argv.length === 0;
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    switch (arg) {
+      case "--interactive":
+        interactive = true;
+        break;
+      case "--yes":
+        interactive = false;
+        break;
+      case "--local-only":
+        overrides.localOnly = true;
+        break;
+      case "--dest":
+        overrides.destination = requireValue(argv, ++index, "--dest");
+        break;
+      case "--provider":
+        overrides.provider = requireValue(argv, ++index, "--provider");
+        break;
+      case "--outputs":
+        overrides.outputs = requireValue(argv, ++index, "--outputs").split(",").filter(Boolean);
+        break;
+      case "--theme":
+        overrides.theme = requireValue(argv, ++index, "--theme").split(",").filter(Boolean);
+        break;
+      case "--max-screens":
+        overrides.maxScreens = Number(requireValue(argv, ++index, "--max-screens"));
+        break;
+      case "--time-budget":
+        overrides.timeBudget = requireValue(argv, ++index, "--time-budget");
+        break;
+      default:
+        if (arg?.startsWith("--")) {
+          throw new Error(`Unsupported option: ${arg}`);
+        }
+    }
+  }
+  return { interactive, overrides };
+}
+
+function requireValue(argv: string[], index: number, flag: string): string {
+  const value = argv[index];
+  if (!value || value.startsWith("--")) throw new Error(`${flag} requires a value`);
+  return value;
+}
+
+async function runDoctor(): Promise<CliResult> {
+  const checks = [
+    checkCommand("node", ["--version"], "Node.js"),
+    checkCommand("pnpm", ["--version"], "pnpm"),
+    checkCommand("flutter", ["--version"], "Flutter"),
+    checkCommand("adb", ["version"], "Android Debug Bridge"),
+    checkCommand("emulator", ["-version"], "Android emulator")
+  ];
+  const failed = checks.filter((check) => !check.ok);
+  const stdout = checks.map((check) => `${check.ok ? "ok" : "missing"} ${check.label}${check.detail ? ` - ${check.detail}` : ""}`).join("\n") + "\n";
+  return { exitCode: failed.length === 0 ? 0 : 2, stdout, stderr: failed.length === 0 ? "" : "Environment is missing required Android tooling.\n" };
+}
+
+function checkCommand(command: string, args: string[], label: string): { label: string; ok: boolean; detail: string } {
+  const result = spawnSync(command, args, { encoding: "utf8", shell: true, timeout: 10_000 });
+  const detail = (result.stdout || result.stderr || "").split(/\r?\n/)[0]?.trim() ?? "";
+  return { label, ok: result.status === 0, detail };
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  return String(error);
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? value as Record<string, unknown> : {};
+}

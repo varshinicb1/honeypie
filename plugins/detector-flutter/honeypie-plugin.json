@@ -1,0 +1,9 @@
+{
+  "id": "detector-flutter",
+  "type": "FrameworkDetector",
+  "version": "0.1.0",
+  "sdkVersion": "^1.0.0",
+  "entry": "./dist/index.js",
+  "displayName": "Flutter Detector",
+  "description": "Detects Flutter apps from pubspec.yaml."
+}

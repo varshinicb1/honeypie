@@ -1,0 +1,17 @@
+flowchart TD
+    A[Source Repository] --> B[builder]
+    B --> C[explorer]
+    C --> D[vision]
+    D --> E[copywriter]
+    E --> F[renderer]
+    F --> G[publisher]
+    G --> H[dist/]
+
+    subgraph core[core: orchestration, config, plugin registry, AI gateway]
+    end
+    core -.orchestrates.-> B
+    core -.orchestrates.-> C
+    core -.orchestrates.-> D
+    core -.orchestrates.-> E
+    core -.orchestrates.-> F
+    core -.orchestrates.-> G

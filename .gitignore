@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.turbo/
+.honeypie/
+coverage/
+*.log
+honeypie.config.local.json
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+examples/*/dist/
+examples/*/.honeypie/
