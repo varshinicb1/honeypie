@@ -15,8 +15,8 @@ importers:
         specifier: ^2.5.4
         version: 2.10.2
       typescript:
-        specifier: ^5.8.3
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.2.4
         version: 3.2.6(@types/node@26.1.0)
@@ -43,8 +43,8 @@ importers:
         specifier: ^0.28.1
         version: 0.28.1
       typescript:
-        specifier: ~5.6.2
-        version: 5.6.3
+        specifier: ~6.0.3
+        version: 6.0.3
       vite:
         specifier: ^6.0.3
         version: 6.4.3(@types/node@26.1.0)
@@ -895,13 +895,8 @@ packages:
     resolution: {integrity: sha512-wTExrNrRjB8qzIcg+ZLm0A3GFNLDsWNwdS/RBXB0FPrBDyzk3i96Yx+TxWZC7a0k1SIreFB8ciUbxjmEqTH8IQ==}
     hasBin: true
 
-  typescript@5.6.3:
-    resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -1580,9 +1575,7 @@ snapshots:
       '@turbo/windows-64': 2.10.2
       '@turbo/windows-arm64': 2.10.2
 
-  typescript@5.6.3: {}
-
-  typescript@5.9.3: {}
+  typescript@6.0.3: {}
 
   undici-types@8.3.0: {}
 
