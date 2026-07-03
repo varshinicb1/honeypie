@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-windows-installer:
+    name: Build & publish Windows MSI
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Bundle the Node sidecar binary
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path apps/desktop/src-tauri/binaries | Out-Null
+          Copy-Item (Get-Command node).Source apps/desktop/src-tauri/binaries/node-x86_64-pc-windows-msvc.exe
+
+      - name: Build workspace
+        run: pnpm build
+
+      - name: Build MSI
+        working-directory: apps/desktop
+        run: npx tauri build --bundles msi
+
+      # Uncomment once a code-signing certificate is available (see docs/28-code-signing.md):
+      # - name: Import signing certificate
+      #   shell: pwsh
+      #   run: |
+      #     $bytes = [Convert]::FromBase64String("${{ secrets.WINDOWS_CERT_PFX_BASE64 }}")
+      #     [IO.File]::WriteAllBytes("cert.pfx", $bytes)
+      #     # then set bundle.windows.certificateThumbprint in tauri.conf.json before building,
+      #     # or sign the built MSI directly with signtool.exe using cert.pfx +
+      #     # secrets.WINDOWS_CERT_PASSWORD.
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/desktop/src-tauri/target/release/bundle/msi/*.msi
+          generate_release_notes: true

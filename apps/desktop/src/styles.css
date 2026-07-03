@@ -22,6 +22,16 @@ body {
   margin: 0;
 }
 
+/*
+ * The HTML `hidden` attribute has the same CSS specificity as a class selector, so a rule
+ * like `.status { display: flex }` silently wins the cascade and un-hides the element even
+ * while `hidden` is set. This forces `hidden` to always win — without it, sections like
+ * #status/#gallery/#error-box render visible on first paint before any run has started.
+ */
+[hidden] {
+  display: none !important;
+}
+
 .app {
   max-width: 640px;
   margin: 0 auto;

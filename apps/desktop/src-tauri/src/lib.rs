@@ -21,26 +21,39 @@ struct GalleryImage {
     data_url: String,
 }
 
-/// Runs the bundled HoneyPie CLI (via the Node sidecar) with the given args/cwd, and captures
-/// both the combined stdout/stderr log and the `Generated <dest>/honeypie.json` line the CLI
-/// prints on success, so the caller knows where to read results from.
-async fn spawn_honeypie(app: &tauri::AppHandle, args: Vec<String>, cwd: Option<String>) -> Result<PipelineOutcome, String> {
+/// Strips the Windows extended-length ("verbatim") path prefix `\\?\`.
+///
+/// `tauri::path::PathResolver::resolve` returns paths in this form on Windows (via
+/// `dunce`-less canonicalization), e.g. `\\?\C:\Program Files\HoneyPie\resources\honeypie-cli.mjs`.
+/// Node.js's internal module resolution (`resolveMainPath` / `realpathSync`) does not handle
+/// this prefix correctly and corrupts the path down to just the drive letter, crashing with
+/// `EISDIR: illegal operation on a directory, lstat 'C:'` before any of our JS even loads —
+/// this is the actual root cause of the app failing to run "paste a repo link", confirmed by
+/// reproducing it manually: the same command with the `\\?\`-prefixed path fails, and with the
+/// prefix stripped it works, regardless of working directory.
+fn strip_verbatim_prefix(path: &std::path::Path) -> String {
+    let text = path.to_string_lossy();
+    text.strip_prefix(r"\\?\").unwrap_or(&text).to_string()
+}
+
+/// Runs the bundled HoneyPie CLI (via the Node sidecar) with the given args, and captures both
+/// the combined stdout/stderr log and the `Generated <dest>/honeypie.json` line the CLI prints
+/// on success, so the caller knows where to read results from.
+async fn spawn_honeypie(app: &tauri::AppHandle, args: Vec<String>, cwd: String) -> Result<PipelineOutcome, String> {
     let cli_path = app
         .path()
         .resolve("resources/honeypie-cli.mjs", BaseDirectory::Resource)
         .map_err(|error| format!("Could not locate bundled honeypie-cli.mjs: {error}"))?;
 
-    let mut all_args = vec![cli_path.to_string_lossy().to_string()];
+    let mut all_args = vec![strip_verbatim_prefix(&cli_path)];
     all_args.extend(args);
 
-    let mut command = app
+    let command = app
         .shell()
         .sidecar("node")
         .map_err(|error| format!("Could not locate bundled Node runtime: {error}"))?
-        .args(all_args);
-    if let Some(dir) = cwd {
-        command = command.current_dir(dir);
-    }
+        .args(all_args)
+        .current_dir(cwd);
 
     let (mut receiver, _child) = command.spawn().map_err(|error| format!("Failed to spawn HoneyPie: {error}"))?;
 
@@ -79,7 +92,7 @@ async fn run_local_pipeline(app: tauri::AppHandle, project_dir: String) -> Resul
     spawn_honeypie(
         &app,
         vec!["run".into(), "--yes".into(), "--local-only".into(), "--dest".into(), "dist".into()],
-        Some(project_dir),
+        project_dir,
     )
     .await
 }
@@ -87,10 +100,16 @@ async fn run_local_pipeline(app: tauri::AppHandle, project_dir: String) -> Resul
 /// Clones `repo_url` and runs whichever real pipeline applies (auto-detected).
 #[tauri::command]
 async fn run_from_repo_url(app: tauri::AppHandle, repo_url: String) -> Result<PipelineOutcome, String> {
+    let cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|error| format!("Could not resolve app cache directory: {error}"))?;
+    fs::create_dir_all(&cache_dir).map_err(|error| format!("Could not create {}: {error}", cache_dir.display()))?;
+
     spawn_honeypie(
         &app,
         vec!["run".into(), "--yes".into(), "--repo".into(), repo_url, "--dest".into(), "dist".into()],
-        None,
+        cache_dir.to_string_lossy().to_string(),
     )
     .await
 }
@@ -140,6 +159,22 @@ fn read_dist_images(destination: String) -> Result<Vec<GalleryImage>, String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Windows can launch a GUI app (Start Menu shortcut, desktop icon, taskbar pin) with a
+    // garbage inherited working directory - observed in the wild as the literal string "C:"
+    // (no trailing separator). That crashes the Node sidecar during its OWN startup
+    // (`EISDIR: illegal operation on a directory, lstat 'C:'` inside Node's internal
+    // resolveMainPath/realpathSync, which runs before any of our JS even loads) even when the
+    // sidecar Command explicitly sets `.current_dir(...)`, because that inherited garbage cwd
+    // is what the OS hands the whole process tree from the moment it's created. Fix it at the
+    // source: pin this app's own cwd to its install directory the instant it starts, so every
+    // child process spawned afterwards inherits something valid no matter how HoneyPie itself
+    // was launched.
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let _ = std::env::set_current_dir(exe_dir);
+        }
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
