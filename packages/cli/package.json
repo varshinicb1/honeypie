@@ -23,5 +23,14 @@
     "@honeypie/builder": "workspace:*",
     "@honeypie/explorer": "workspace:*",
     "@honeypie/publisher": "workspace:*"
+  },
+  "pkg": {
+    "assets": [
+      "dist/**/*"
+    ],
+    "targets": [
+      "node22-win-x64"
+    ],
+    "outputPath": "../../dist"
   }
 }
