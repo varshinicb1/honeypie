@@ -37,9 +37,20 @@ jobs:
         run: |
           npx pkg packages/cli/package.json --targets node22-win-x64 --output dist/honeypie.exe
 
+      - name: Setup Node Sidecar for Desktop App
+        run: |
+          node -e "const fs = require('fs'); fs.mkdirSync('apps/desktop/src-tauri/binaries', { recursive: true }); fs.copyFileSync(process.execPath, 'apps/desktop/src-tauri/binaries/node-x86_64-pc-windows-msvc.exe')"
+
+      - name: Build Tauri Desktop MSI
+        run: |
+          pnpm --filter desktop exec tauri build --bundles msi
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/honeypie.exe
+          files: |
+            dist/honeypie.exe
+            apps/desktop/src-tauri/target/release/bundle/msi/*.msi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
