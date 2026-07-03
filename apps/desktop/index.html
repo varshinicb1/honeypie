@@ -2,56 +2,206 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="stylesheet" href="/src/styles.css" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HoneyPie</title>
+    <title>HoneyPie — App Store Screenshot Automation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/styles.css" />
     <script type="module" src="/src/main.ts" defer></script>
   </head>
 
   <body>
-    <main class="app">
-      <header class="hero">
-        <h1>🍯 HoneyPie</h1>
-        <p>From source code to store-ready screenshots. No setup required.</p>
-      </header>
-
-      <section id="drop-zone" class="drop-zone">
-        <div class="drop-zone-inner">
-          <p class="drop-zone-title">Drag &amp; drop a project folder</p>
-          <p class="drop-zone-sub">or</p>
-          <button id="pick-folder-btn" type="button" class="btn btn-secondary">Choose a folder…</button>
+    <div class="sidebar">
+      <div class="brand">
+        <img src="/src/assets/logo.png" alt="HoneyPie" class="brand-logo" />
+        <div class="brand-text">
+          <span class="brand-name">HoneyPie</span>
+          <span class="brand-version">v1.0</span>
         </div>
-      </section>
+      </div>
 
-      <div class="divider"><span>or paste a GitHub link</span></div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" id="nav-generate" data-tab="generate">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Generate
+        </button>
+        <button class="nav-item" id="nav-history" data-tab="history">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          History
+        </button>
+        <button class="nav-item" id="nav-settings" data-tab="settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+          Settings
+        </button>
+      </nav>
 
-      <form id="repo-form" class="repo-form">
-        <input id="repo-input" type="text" placeholder="https://github.com/owner/repo" autocomplete="off" />
-        <button id="repo-btn" type="submit" class="btn btn-primary">Generate</button>
-      </form>
+      <div class="sidebar-footer">
+        <button id="doctor-btn" class="btn-ghost small">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          Run diagnostics
+        </button>
+      </div>
+    </div>
 
-      <p id="selected-path" class="selected-path"></p>
-
-      <section id="status" class="status" hidden>
-        <div class="spinner"></div>
-        <p id="status-text">Running HoneyPie…</p>
-      </section>
-
-      <section id="error-box" class="error-box" hidden>
-        <p id="error-text"></p>
-      </section>
-
-      <section id="gallery" class="gallery" hidden>
-        <div class="gallery-header">
-          <p id="gallery-summary"></p>
-          <button id="open-folder-btn" type="button" class="btn btn-secondary">Open output folder</button>
+    <main class="main-content">
+      <!-- GENERATE TAB -->
+      <div id="tab-generate" class="tab-panel active">
+        <div class="panel-header">
+          <h1>Generate Screenshots</h1>
+          <p>Drop a project folder or paste a repo URL to get store-ready assets in seconds.</p>
         </div>
-        <div id="gallery-grid" class="gallery-grid"></div>
-        <details class="log-details">
-          <summary>Full log</summary>
-          <pre id="log-output"></pre>
-        </details>
-      </section>
+
+        <!-- Input Card -->
+        <div class="card input-card">
+          <section id="drop-zone" class="drop-zone" role="button" tabindex="0" aria-label="Drop project folder here">
+            <div class="drop-zone-inner">
+              <div class="drop-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <p class="drop-title">Drag &amp; drop a project folder</p>
+              <p class="drop-sub">Flutter, Android, React Native — auto-detected</p>
+              <button id="pick-folder-btn" type="button" class="btn btn-outline">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                Choose a folder…
+              </button>
+            </div>
+          </section>
+
+          <div class="divider"><span>or paste a repo URL</span></div>
+
+          <form id="repo-form" class="repo-form">
+            <div class="input-wrap">
+              <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg>
+              <input id="repo-input" type="url" placeholder="https://github.com/owner/repo" autocomplete="off" spellcheck="false" />
+            </div>
+            <button id="repo-btn" type="submit" class="btn btn-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Generate
+            </button>
+          </form>
+
+          <p id="selected-path" class="selected-path" aria-live="polite"></p>
+        </div>
+
+        <!-- Status / Progress -->
+        <div id="status" class="card status-card" hidden>
+          <div class="progress-steps">
+            <div class="step" id="step-detect">
+              <div class="step-dot pulse"></div>
+              <span>Detecting framework</span>
+            </div>
+            <div class="step" id="step-explore">
+              <div class="step-dot"></div>
+              <span>Exploring screens</span>
+            </div>
+            <div class="step" id="step-vision">
+              <div class="step-dot"></div>
+              <span>Vision scoring</span>
+            </div>
+            <div class="step" id="step-publish">
+              <div class="step-dot"></div>
+              <span>Publishing assets</span>
+            </div>
+          </div>
+          <p id="status-text" class="status-text">Starting pipeline…</p>
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+
+        <!-- Error -->
+        <div id="error-box" class="card error-card" hidden>
+          <div class="error-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            Pipeline failed
+          </div>
+          <pre id="error-text" class="error-pre"></pre>
+          <button id="error-dismiss" class="btn btn-ghost small">Dismiss</button>
+        </div>
+
+        <!-- Gallery -->
+        <div id="gallery" class="gallery-panel" hidden>
+          <div class="gallery-header">
+            <div>
+              <h2 id="gallery-title">Results</h2>
+              <p id="gallery-summary" class="gallery-meta"></p>
+            </div>
+            <div class="gallery-actions">
+              <button id="open-folder-btn" type="button" class="btn btn-outline small">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                Open folder
+              </button>
+            </div>
+          </div>
+
+          <div id="gallery-grid" class="gallery-grid"></div>
+
+          <details class="log-details">
+            <summary>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              Full pipeline log
+            </summary>
+            <pre id="log-output" class="log-pre"></pre>
+          </details>
+        </div>
+      </div>
+
+      <!-- HISTORY TAB -->
+      <div id="tab-history" class="tab-panel">
+        <div class="panel-header">
+          <h1>History</h1>
+          <p>Previous pipeline runs will appear here.</p>
+        </div>
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <p>No runs yet</p>
+        </div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div id="tab-settings" class="tab-panel">
+        <div class="panel-header">
+          <h1>Settings</h1>
+          <p>Configure HoneyPie for your workflow.</p>
+        </div>
+        <div class="card settings-card">
+          <div class="setting-row">
+            <div class="setting-label">
+              <span>Max screens per run</span>
+              <small>Limits how many screens are explored</small>
+            </div>
+            <input id="setting-max-screens" type="number" class="setting-input" value="10" min="1" max="50" />
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <span>Enable device capture</span>
+              <small>Use connected Android device via ADB</small>
+            </div>
+            <label class="toggle">
+              <input id="setting-device" type="checkbox" />
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <span>Output destination</span>
+              <small>Relative path for generated assets</small>
+            </div>
+            <input id="setting-dest" type="text" class="setting-input" value="dist/readme" />
+          </div>
+        </div>
+      </div>
     </main>
+
+    <!-- Doctor overlay -->
+    <div id="doctor-overlay" class="overlay" hidden>
+      <div class="overlay-card">
+        <div class="overlay-header">
+          <h2>Environment Diagnostics</h2>
+          <button id="doctor-close" class="btn-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <pre id="doctor-output" class="log-pre" style="min-height:120px">Running diagnostics…</pre>
+      </div>
+    </div>
   </body>
 </html>
