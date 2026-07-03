@@ -45,6 +45,18 @@
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; background: var(--bg-base); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; }
 
+/*
+ * The HTML `hidden` attribute has the same CSS specificity as a class selector, so any rule
+ * like `.status-card { display: flex }` silently wins the cascade and un-hides the element even
+ * while `hidden` is set (author stylesheets always beat the browser's own [hidden] rule,
+ * regardless of matching specificity). Without this, #status/#error-box/#gallery/#doctor-overlay
+ * are all visible on first paint, before anything has run — this is exactly the bug that made
+ * a real installed build look permanently stuck to every user.
+ */
+[hidden] {
+  display: none !important;
+}
+
 /* ──────────────────────────────────────────────
    SIDEBAR
    ────────────────────────────────────────────── */

@@ -21,26 +21,45 @@ struct GalleryImage {
     data_url: String,
 }
 
-/// Runs the bundled HoneyPie CLI (via the Node sidecar) with the given args/cwd, and captures
-/// both the combined stdout/stderr log and the `Generated <dest>/honeypie.json` line the CLI
-/// prints on success, so the caller knows where to read results from.
-async fn spawn_honeypie(app: &tauri::AppHandle, args: Vec<String>, cwd: Option<String>) -> Result<PipelineOutcome, String> {
+/// Strips the Windows extended-length ("verbatim") path prefix `\\?\`.
+///
+/// `tauri::path::PathResolver::resolve` returns paths in this form on Windows.
+/// Node.js's internal module resolution (`resolveMainPath` / `realpathSync`) does not handle
+/// this prefix correctly and corrupts the path down to just the drive letter, crashing with
+/// `EISDIR: illegal operation on a directory, lstat 'C:'` before any of our JS even loads. This
+/// was root-caused by reproducing the exact crash from a real installed build (not just `tauri
+/// dev`, which never hits this code path) via targeted diagnostic logging, then confirming the
+/// fix by byte-for-byte reproduction: the same node invocation with the prefix crashes, and
+/// without it succeeds, regardless of working directory.
+fn strip_verbatim_prefix(path: &std::path::Path) -> String {
+    let text = path.to_string_lossy();
+    text.strip_prefix(r"\\?\").unwrap_or(&text).to_string()
+}
+
+/// Runs the bundled HoneyPie CLI (via the Node sidecar) with the given args, and captures both
+/// the combined stdout/stderr log and the `Generated <dest>/honeypie.json` line the CLI prints
+/// on success, so the caller knows where to read results from.
+///
+/// `cwd` is required, not optional, on purpose: when HoneyPie is launched from a Start Menu
+/// shortcut or desktop icon (not a terminal), Windows can hand the process an unusable inherited
+/// working directory - e.g. the bare string "C:" with no trailing separator - which crashes the
+/// sidecar in the same way as the verbatim-prefix bug above. Making this parameter non-optional
+/// means a future call site can't silently reintroduce that bug by omitting it.
+async fn spawn_honeypie(app: &tauri::AppHandle, args: Vec<String>, cwd: String) -> Result<PipelineOutcome, String> {
     let cli_path = app
         .path()
         .resolve("resources/honeypie-cli.mjs", BaseDirectory::Resource)
         .map_err(|error| format!("Could not locate bundled honeypie-cli.mjs: {error}"))?;
 
-    let mut all_args = vec![cli_path.to_string_lossy().to_string()];
+    let mut all_args = vec![strip_verbatim_prefix(&cli_path)];
     all_args.extend(args);
 
-    let mut command = app
+    let command = app
         .shell()
         .sidecar("node")
         .map_err(|error| format!("Could not locate bundled Node runtime: {error}"))?
-        .args(all_args);
-    if let Some(dir) = cwd {
-        command = command.current_dir(dir);
-    }
+        .args(all_args)
+        .current_dir(cwd);
 
     let (mut receiver, _child) = command.spawn().map_err(|error| format!("Failed to spawn HoneyPie: {error}"))?;
 
@@ -72,6 +91,17 @@ fn parse_destination(log: &str) -> Option<String> {
     Some(path.to_string())
 }
 
+/// Resolves (and creates) a directory that is guaranteed to be a valid working directory for
+/// the sidecar, for commands that have no natural cwd of their own (repo-url runs, doctor).
+fn resolve_safe_cache_dir(app: &tauri::AppHandle) -> Result<String, String> {
+    let cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|error| format!("Could not resolve app cache directory: {error}"))?;
+    fs::create_dir_all(&cache_dir).map_err(|error| format!("Could not create {}: {error}", cache_dir.display()))?;
+    Ok(cache_dir.to_string_lossy().to_string())
+}
+
 /// Runs the real local-only pipeline (zero external dependencies) against a folder the user
 /// picked or dropped.
 #[tauri::command]
@@ -79,7 +109,7 @@ async fn run_local_pipeline(app: tauri::AppHandle, project_dir: String) -> Resul
     spawn_honeypie(
         &app,
         vec!["run".into(), "--yes".into(), "--local-only".into(), "--dest".into(), "dist".into()],
-        Some(project_dir),
+        project_dir,
     )
     .await
 }
@@ -87,10 +117,11 @@ async fn run_local_pipeline(app: tauri::AppHandle, project_dir: String) -> Resul
 /// Clones `repo_url` and runs whichever real pipeline applies (auto-detected).
 #[tauri::command]
 async fn run_from_repo_url(app: tauri::AppHandle, repo_url: String) -> Result<PipelineOutcome, String> {
+    let cache_dir = resolve_safe_cache_dir(&app)?;
     spawn_honeypie(
         &app,
         vec!["run".into(), "--yes".into(), "--repo".into(), repo_url, "--dest".into(), "dist".into()],
-        None,
+        cache_dir,
     )
     .await
 }
@@ -141,7 +172,8 @@ fn read_dist_images(destination: String) -> Result<Vec<GalleryImage>, String> {
 /// Runs `honeypie doctor` via the bundled CLI sidecar and returns the output.
 #[tauri::command]
 async fn run_doctor_command(app: tauri::AppHandle) -> Result<PipelineOutcome, String> {
-    spawn_honeypie(&app, vec!["doctor".into()], None).await
+    let cache_dir = resolve_safe_cache_dir(&app)?;
+    spawn_honeypie(&app, vec!["doctor".into()], cache_dir).await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
