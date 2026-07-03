@@ -117,7 +117,7 @@ async function discoverFlutterRoutes(libDir: string): Promise<string[]> {
         /GoRoute\s*\(\s*path\s*:\s*['"]([^'"]+)['"]/g,
         /Navigator\.pushNamed\s*\([^,]+,\s*['"]([^'"]+)['"]/g,
         /routes\s*:\s*\{[^}]*['"]([^'"]+)['"]\s*:/g,
-        /\/([a-z][a-z0-9_-]*)(?=['"\s,)])/g,
+        /(\/[a-z][a-z0-9_-]*)(?=['"\s,)])/g,
       ];
 
       for (const pattern of routePatterns) {

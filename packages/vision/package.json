@@ -4,9 +4,15 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "@honeypie/core": "workspace:*"
+    "@honeypie/core": "workspace:*",
+    "@honeypie/plugin-sdk": "workspace:*"
   },
   "exports": {
     ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --config ../../vitest.config.ts src",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }

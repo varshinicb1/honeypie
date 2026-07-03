@@ -126,6 +126,9 @@ importers:
       '@honeypie/core':
         specifier: workspace:*
         version: link:../core
+      '@honeypie/plugin-sdk':
+        specifier: workspace:*
+        version: link:../plugin-sdk
 
   plugins/detector-android-native:
     dependencies:

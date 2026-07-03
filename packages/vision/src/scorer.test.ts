@@ -21,7 +21,8 @@ describe("Vision pipeline tests", () => {
       screenshots: [
         { id: "shot1", path: path1, sourceNodeId: "node1" },
         { id: "shot2", path: path2, sourceNodeId: "node2" }
-      ]
+      ],
+      forceInclude: ["shot1"]
     });
 
     // One should be selected, one rejected as duplicate
