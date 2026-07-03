@@ -1,4 +1,5 @@
 import { writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { join, relative } from "node:path";
 import { runLocalOnlyPipeline, type ConfigCliOverrides, defaultConfig } from "@honeypie/core";
 import { spawnSync } from "node:child_process";
@@ -123,12 +124,40 @@ async function runDoctor(): Promise<CliResult> {
     checkCommand("node", ["--version"], "Node.js"),
     checkCommand("pnpm", ["--version"], "pnpm"),
     checkCommand("flutter", ["--version"], "Flutter"),
-    checkCommand("adb", ["version"], "Android Debug Bridge"),
-    checkCommand("emulator", ["-version"], "Android emulator")
+    checkCommand(resolveAndroidTool("adb") ?? "adb", ["version"], "Android Debug Bridge"),
+    checkCommand(resolveAndroidTool("emulator") ?? "emulator", ["-version"], "Android emulator")
   ];
   const failed = checks.filter((check) => !check.ok);
   const stdout = checks.map((check) => `${check.ok ? "ok" : "missing"} ${check.label}${check.detail ? ` - ${check.detail}` : ""}`).join("\n") + "\n";
   return { exitCode: failed.length === 0 ? 0 : 2, stdout, stderr: failed.length === 0 ? "" : "Environment is missing required Android tooling.\n" };
+}
+
+export interface ToolResolverFs {
+  exists(path: string): boolean;
+}
+
+export function resolveAndroidTool(
+  tool: "adb" | "emulator",
+  env: NodeJS.ProcessEnv = process.env,
+  fs: ToolResolverFs = { exists: existsSync }
+): string | null {
+  const executable = process.platform === "win32" ? `${tool}.exe` : tool;
+  const sdkRoots = [env.ANDROID_HOME, env.ANDROID_SDK_ROOT]
+    .filter((value): value is string => Boolean(value))
+    .flatMap((value) => uniqueCaseVariants(value));
+  const relativePath = tool === "adb" ? join("platform-tools", executable) : join("emulator", executable);
+  for (const sdkRoot of sdkRoots) {
+    const candidate = join(sdkRoot, relativePath);
+    if (fs.exists(candidate)) return candidate;
+  }
+  return null;
+}
+
+function uniqueCaseVariants(path: string): string[] {
+  const variants = [path];
+  if (path.includes("\\Sdk")) variants.push(path.replace("\\Sdk", "\\sdk"));
+  if (path.includes("\\sdk")) variants.push(path.replace("\\sdk", "\\Sdk"));
+  return [...new Set(variants)];
 }
 
 function checkCommand(command: string, args: string[], label: string): { label: string; ok: boolean; detail: string } {

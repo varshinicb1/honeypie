@@ -30,6 +30,18 @@ async function tempNestedFlutterProject(): Promise<string> {
   return dir;
 }
 
+async function tempFlutterProjectWithScreenshot(): Promise<string> {
+  const dir = await mkdtemp(join(tmpdir(), "honeypie-real-shot-"));
+  tempDirs.push(dir);
+  await mkdir(join(dir, "lib"), { recursive: true });
+  await mkdir(join(dir, "test", "screenshots"), { recursive: true });
+  await writeFile(join(dir, "README.md"), "# Real Shot\n");
+  await writeFile(join(dir, "pubspec.yaml"), "name: real_shot\ndescription: Screenshot app\n");
+  await writeFile(join(dir, "lib", "main.dart"), "void main() {}\n");
+  await writeFile(join(dir, "test", "screenshots", "home.png"), Buffer.from(TINY_PNG_BASE64, "base64"));
+  return dir;
+}
+
 describe("README export target", () => {
   test("writes a readme mockup asset and inserts a guarded README block", async () => {
     const projectRoot = await tempAndroidProject("# Readme Demo\n\nExisting project notes.\n");
@@ -71,4 +83,18 @@ describe("README export target", () => {
     expect(readme).toContain("Repository overview.");
     expect(readme).toContain("![Nested Mobile app mockup](dist/readme/hero.svg)");
   });
+
+  test("uses existing real screenshot files when present", async () => {
+    const projectRoot = await tempFlutterProjectWithScreenshot();
+
+    const result = await runLocalOnlyPipeline({ projectRoot, cliOverrides: { localOnly: true, destination: "dist" } });
+
+    const hero = await readFile(join(projectRoot, "dist", "readme", "hero.svg"), "utf8");
+    expect(result.manifest.assets.some((entry) => entry.path === "screenshots/home.png" && entry.target === "screenshots")).toBe(true);
+    expect(hero).toContain("data:image/png;base64,");
+    expect(hero).toContain(TINY_PNG_BASE64);
+  });
 });
+
+const TINY_PNG_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";

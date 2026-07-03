@@ -1,5 +1,6 @@
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { copyFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { basename, extname, join } from "node:path";
+import { spawnSync } from "node:child_process";
 import { createAIGateway } from "./ai.js";
 import type { ConfigCliOverrides } from "./config.js";
 import { loadConfig } from "./config.js";
@@ -58,6 +59,7 @@ export async function runLocalOnlyPipeline(options: RunLocalOnlyPipelineOptions)
       name: "publisher",
       run: async (ctx) =>
         publishMinimalDist({
+          projectRoot: options.projectRoot,
           destination,
           app: (ctx.builder as BuildArtifact).app,
           exploration: ctx.explorer as ExplorationArtifact,
@@ -184,6 +186,7 @@ function scoreSyntheticScreens(exploration: ExplorationArtifact): VisionArtifact
 }
 
 async function publishMinimalDist(input: {
+  projectRoot: string;
   destination: string;
   app: HoneyPieManifest["app"];
   exploration: ExplorationArtifact;
@@ -193,10 +196,16 @@ async function publishMinimalDist(input: {
   await mkdir(join(input.destination, "screenshots"), { recursive: true });
   await mkdir(join(input.destination, "readme"), { recursive: true });
   await mkdir(join(input.destination, "metadata"), { recursive: true });
-  const assetPath = "screenshots/home.txt";
+  const deviceScreenshot = await captureConnectedAndroidScreenshot(input.projectRoot);
+  const existingScreenshot = deviceScreenshot ?? await findExistingScreenshot(input.projectRoot);
+  const assetPath = existingScreenshot ? `screenshots/home${existingScreenshot.ext}` : "screenshots/home.txt";
   const readmeAssetPath = "readme/hero.svg";
-  await writeFile(join(input.destination, assetPath), `${input.app.appName}\nSelected local-only screenshot artifact\n`);
-  await writeFile(join(input.destination, readmeAssetPath), renderReadmeHeroSvg(input.app.appName));
+  if (existingScreenshot) {
+    await copyFile(existingScreenshot.path, join(input.destination, assetPath));
+  } else {
+    await writeFile(join(input.destination, assetPath), `${input.app.appName}\nSelected local-only screenshot artifact\n`);
+  }
+  await writeFile(join(input.destination, readmeAssetPath), await renderReadmeHeroSvg(input.app.appName, existingScreenshot?.path ?? null));
   await writeFile(
     join(input.destination, "metadata", "store-listing.json"),
     `${JSON.stringify({ headline: input.app.appName, subtitle: "Generated in local-only mode" }, null, 2)}\n`
@@ -259,18 +268,123 @@ function ensureTrailingNewline(value: string): string {
   return value.endsWith("\n") ? value : `${value}\n`;
 }
 
-function renderReadmeHeroSvg(appName: string): string {
+async function renderReadmeHeroSvg(appName: string, screenshotPath: string | null): Promise<string> {
   const title = escapeHtml(appName);
+  const embedded = screenshotPath ? await embeddedImageElement(screenshotPath) : null;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-label="${title} app mockup">
   <rect width="1280" height="720" fill="#101828"/>
   <rect x="470" y="70" width="340" height="580" rx="42" fill="#111827" stroke="#f97316" stroke-width="8"/>
   <rect x="500" y="120" width="280" height="480" rx="24" fill="#fff7ed"/>
-  <text x="640" y="270" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="700" fill="#1f2937">${title}</text>
-  <text x="640" y="330" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="24" fill="#4b5563">Generated app preview</text>
-  <rect x="550" y="390" width="180" height="52" rx="26" fill="#f97316"/>
-  <text x="640" y="424" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#ffffff">HoneyPie</text>
+  ${embedded ?? `<rect x="520" y="145" width="240" height="250" rx="20" fill="#fed7aa"/>`}
+  <text x="640" y="455" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#1f2937">${title}</text>
+  <text x="640" y="500" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="21" fill="#4b5563">Generated app preview</text>
+  <rect x="550" y="540" width="180" height="52" rx="26" fill="#f97316"/>
+  <text x="640" y="574" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#ffffff">HoneyPie</text>
 </svg>
 `;
+}
+
+async function embeddedImageElement(path: string): Promise<string> {
+  const bytes = await readFile(path);
+  const mime = extname(path).toLowerCase() === ".jpg" || extname(path).toLowerCase() === ".jpeg" ? "image/jpeg" : "image/png";
+  return `<image x="520" y="145" width="240" height="250" preserveAspectRatio="xMidYMid slice" href="data:${mime};base64,${bytes.toString("base64")}"/>`;
+}
+
+async function findExistingScreenshot(projectRoot: string): Promise<{ path: string; ext: ".png" | ".jpg" | ".jpeg" } | null> {
+  const candidates = await findImageFiles(projectRoot, 5);
+  return candidates[0] ?? null;
+}
+
+async function captureConnectedAndroidScreenshot(projectRoot: string): Promise<{ path: string; ext: ".png" } | null> {
+  if (process.env.HONEYPIE_CAPTURE_DEVICE !== "1") return null;
+  const adb = resolveAdbPath();
+  if (!adb) return null;
+  const devices = spawnSync(adb, ["devices"], { encoding: "utf8", timeout: 5_000 });
+  if (devices.status !== 0) return null;
+  const deviceId = devices.stdout
+    .split(/\r?\n/)
+    .map((line) => /^(\S+)\s+device$/.exec(line)?.[1])
+    .find((value): value is string => Boolean(value));
+  if (!deviceId) return null;
+  const shot = spawnSync(adb, ["-s", deviceId, "exec-out", "screencap", "-p"], { encoding: "buffer", timeout: 15_000, maxBuffer: 20 * 1024 * 1024 });
+  if (shot.status !== 0 || !Buffer.isBuffer(shot.stdout) || !isPng(shot.stdout)) return null;
+  const dir = join(projectRoot, ".honeypie", "cache", "device");
+  await mkdir(dir, { recursive: true });
+  const path = join(dir, "screen.png");
+  await writeFile(path, shot.stdout);
+  return { path, ext: ".png" };
+}
+
+function resolveAdbPath(): string | null {
+  const executable = process.platform === "win32" ? "adb.exe" : "adb";
+  const sdkRoots = [process.env.ANDROID_HOME, process.env.ANDROID_SDK_ROOT].filter((value): value is string => Boolean(value));
+  for (const root of sdkRoots.flatMap((value) => uniqueCaseVariants(value))) {
+    const candidate = join(root, "platform-tools", executable);
+    try {
+      const probe = spawnSync(candidate, ["version"], { encoding: "utf8", timeout: 5_000 });
+      if (probe.status === 0) return candidate;
+    } catch {
+      // continue to PATH fallback
+    }
+  }
+  const probe = spawnSync("adb", ["version"], { encoding: "utf8", shell: process.platform === "win32", timeout: 5_000 });
+  return probe.status === 0 ? "adb" : null;
+}
+
+function uniqueCaseVariants(path: string): string[] {
+  const variants = [path];
+  if (path.includes("\\Sdk")) variants.push(path.replace("\\Sdk", "\\sdk"));
+  if (path.includes("\\sdk")) variants.push(path.replace("\\sdk", "\\Sdk"));
+  return [...new Set(variants)];
+}
+
+function isPng(bytes: Buffer): boolean {
+  return bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+}
+
+async function findImageFiles(root: string, maxDepth: number): Promise<Array<{ path: string; ext: ".png" | ".jpg" | ".jpeg" }>> {
+  const ignored = new Set([".git", ".honeypie", "node_modules", "build", "dist", ".dart_tool"]);
+  const results: Array<{ path: string; ext: ".png" | ".jpg" | ".jpeg" }> = [];
+
+  async function visit(dir: string, depth: number): Promise<void> {
+    if (depth > maxDepth) return;
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isFile()) {
+        const ext = extname(entry.name).toLowerCase();
+        if ((ext === ".png" || ext === ".jpg" || ext === ".jpeg") && looksLikeScreenshotPath(fullPath)) {
+          results.push({ path: fullPath, ext });
+        }
+      }
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || ignored.has(entry.name)) continue;
+      await visit(join(dir, entry.name), depth + 1);
+    }
+  }
+
+  await visit(root, 0);
+  return results.sort((a, b) => scoreImagePath(b.path) - scoreImagePath(a.path) || a.path.localeCompare(b.path));
+}
+
+function looksLikeScreenshotPath(path: string): boolean {
+  const normalized = path.replace(/\\/g, "/").toLowerCase();
+  return normalized.includes("screenshot") || normalized.includes("mockup") || normalized.includes("preview");
+}
+
+function scoreImagePath(path: string): number {
+  const normalized = path.replace(/\\/g, "/").toLowerCase();
+  let score = 0;
+  if (normalized.includes("/screenshots/")) score += 10;
+  if (normalized.includes("screenshot")) score += 5;
+  if (normalized.includes("home")) score += 2;
+  return score;
 }
 
 function renderReport(manifest: HoneyPieManifest): string {
