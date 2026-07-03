@@ -78,33 +78,112 @@ export async function runLocalOnlyPipeline(options: RunLocalOnlyPipelineOptions)
 }
 
 async function detectAndBuildProject(projectRoot: string): Promise<BuildArtifact> {
-  let builder: any;
+  // `@honeypie/builder` is imported dynamically here (rather than statically, which would
+  // create a circular package dependency — builder already depends on core) so this stays
+  // best-effort: the standalone bundled CLI the desktop app ships (esbuild output + a bare
+  // node.exe, no node_modules) cannot resolve this import at runtime, so it must fail into a
+  // real fallback rather than throwing outright — otherwise every single "drop a folder" run
+  // in the installed app fails immediately, regardless of project type.
   try {
-    // Dynamic import to bypass package.json check-boundaries rule
-    builder = await import("@honeypie/builder");
+    const builder: any = await import("@honeypie/builder");
+    const detection = await builder.detectFramework(projectRoot);
+
+    let apkPath: string | undefined;
+    try {
+      const buildResult = await builder.buildProject(projectRoot, detection.framework);
+      apkPath = buildResult.apkPath;
+    } catch {
+      // Gracefully handle build failure, continue with synthetic fallbacks if needed
+    }
+
+    return {
+      app: {
+        framework: detection.framework,
+        packageName: detection.packageName,
+        appName: detection.appName
+      },
+      apkPath
+    };
   } catch {
-    throw new ConfigError("Builder package is not loaded", { projectRoot });
+    return detectProjectByMarkerFiles(projectRoot);
+  }
+}
+
+/** Deterministic, dependency-free framework detection via marker file presence/content. */
+async function detectProjectByMarkerFiles(projectRoot: string): Promise<BuildArtifact> {
+  const flutterMarker = await findProjectMarker(projectRoot, "pubspec.yaml");
+  if (flutterMarker) {
+    const name = matchYamlScalar(flutterMarker.content, "name") ?? basename(flutterMarker.dir);
+    return {
+      app: {
+        framework: "flutter",
+        packageName: `dev.honeypie.${name.replace(/[^a-zA-Z0-9_]/g, "_")}`,
+        appName: titleCase(name)
+      }
+    };
+  }
+  const gradleMarker = await findFirstProjectMarker(projectRoot, ["settings.gradle.kts", "settings.gradle"]);
+  if (gradleMarker) {
+    const name = matchGradleAssignment(gradleMarker.content, "rootProject.name") ?? basename(gradleMarker.dir);
+    return {
+      app: {
+        framework: "android-native",
+        packageName: `dev.honeypie.${name.replace(/[^a-zA-Z0-9_]/g, "_")}`,
+        appName: titleCase(name)
+      }
+    };
+  }
+  throw new ConfigError("No supported Flutter or Android project markers found", { projectRoot });
+}
+
+interface ProjectMarker {
+  dir: string;
+  content: string;
+}
+
+async function findFirstProjectMarker(projectRoot: string, filenames: string[]): Promise<ProjectMarker | null> {
+  for (const filename of filenames) {
+    const marker = await findProjectMarker(projectRoot, filename);
+    if (marker) return marker;
+  }
+  return null;
+}
+
+async function findProjectMarker(projectRoot: string, filename: string): Promise<ProjectMarker | null> {
+  const rootContent = await readTextIfExists(join(projectRoot, filename));
+  if (rootContent) return { dir: projectRoot, content: rootContent };
+  const candidates = await findNestedFiles(projectRoot, filename, 3);
+  const first = candidates[0];
+  if (!first) return null;
+  return { dir: first.dir, content: await readFile(first.path, "utf8") };
+}
+
+async function findNestedFiles(root: string, filename: string, maxDepth: number): Promise<Array<{ dir: string; path: string }>> {
+  const ignored = new Set([".git", ".honeypie", "node_modules", "build", "dist", ".dart_tool"]);
+  const results: Array<{ dir: string; path: string }> = [];
+
+  async function visit(dir: string, depth: number): Promise<void> {
+    if (depth > maxDepth) return;
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name);
+      if (entry.isFile() && entry.name === filename) {
+        results.push({ dir, path: fullPath });
+      }
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || ignored.has(entry.name)) continue;
+      await visit(join(dir, entry.name), depth + 1);
+    }
   }
 
-  const detection = await builder.detectFramework(projectRoot);
-  
-  // Try building the project
-  let apkPath: string | undefined;
-  try {
-    const buildResult = await builder.buildProject(projectRoot, detection.framework);
-    apkPath = buildResult.apkPath;
-  } catch {
-    // Gracefully handle build failure, continue with synthetic fallbacks if needed
-  }
-
-  return {
-    app: {
-      framework: detection.framework,
-      packageName: detection.packageName,
-      appName: detection.appName
-    },
-    apkPath
-  };
+  await visit(root, 0);
+  return results.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 async function runExploration(projectRoot: string, build: BuildArtifact): Promise<ExplorationArtifact> {

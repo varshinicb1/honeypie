@@ -1,6 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, win32 } from "node:path";
 import { runLocalOnlyPipeline, type ConfigCliOverrides, defaultConfig } from "@honeypie/core";
 import { spawnSync } from "node:child_process";
 import { runAndroidNativePipeline } from "./android-native-pipeline.js";
@@ -141,13 +141,19 @@ export function resolveAndroidTool(
   env: NodeJS.ProcessEnv = process.env,
   fs: ToolResolverFs = { exists: existsSync }
 ): string | null {
-  const executable = process.platform === "win32" ? `${tool}.exe` : tool;
+  // Always join using Windows path semantics, not the platform-dependent `join` from
+  // "node:path": this product only ever ships/runs on Windows, and ANDROID_HOME/ANDROID_SDK_ROOT
+  // values (and this function's tests) use Windows-style paths regardless of what OS the code
+  // happens to execute on (e.g. CI runs this test suite on Linux, where the platform-dependent
+  // `join` treats backslashes as literal characters instead of separators and silently produces
+  // a path that never matches on disk).
+  const executable = `${tool}.exe`;
   const sdkRoots = [env.ANDROID_HOME, env.ANDROID_SDK_ROOT]
     .filter((value): value is string => Boolean(value))
     .flatMap((value) => uniqueCaseVariants(value));
-  const relativePath = tool === "adb" ? join("platform-tools", executable) : join("emulator", executable);
+  const relativePath = tool === "adb" ? win32.join("platform-tools", executable) : win32.join("emulator", executable);
   for (const sdkRoot of sdkRoots) {
-    const candidate = join(sdkRoot, relativePath);
+    const candidate = win32.join(sdkRoot, relativePath);
     if (fs.exists(candidate)) return candidate;
   }
   return null;
