@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HoneyPie — From source code to store-ready screenshots</title>
+  <meta name="description" content="Drop a project folder or paste a repo link. HoneyPie builds your app for real, explores it, and captures real screenshots and device mockups. No setup required." />
+  <meta property="og:title" content="HoneyPie" />
+  <meta property="og:description" content="From source code to store-ready screenshots. Automatically." />
+  <meta property="og:image" content="assets/og-hero.png" />
+  <link rel="icon" href="assets/logo.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top">
+        <img src="assets/logo.png" alt="HoneyPie" />
+        <span>Honey<b>Pie</b></span>
+      </a>
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#honest">What's real</a>
+        <a href="https://github.com/varshinicb1/honeypie" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn btn-small" href="https://github.com/varshinicb1/honeypie/releases/latest" target="_blank" rel="noopener">Download</a>
+      </div>
+    </div>
+  </nav>
+
+  <header id="top" class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-inner">
+      <div class="hero-copy reveal">
+        <p class="eyebrow">🍯 Free &amp; open source · Windows</p>
+        <h1>From source code to <span class="accent">store-ready screenshots.</span><br/>Automatically.</h1>
+        <p class="lede">Drop a project folder or paste a repo link. HoneyPie builds your app for real, taps through every screen, and captures real screenshots &amp; device mockups — no manual screenshotting, no Figma, no setup.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="https://github.com/varshinicb1/honeypie/releases/latest" target="_blank" rel="noopener">
+            <span>Download for Windows</span>
+            <small>Free · No account needed</small>
+          </a>
+          <a class="btn btn-ghost" href="https://github.com/varshinicb1/honeypie" target="_blank" rel="noopener">View on GitHub</a>
+        </div>
+        <p class="fine-print">⚠️ Early build — installer is unsigned, so Windows SmartScreen will warn you on first run. Click "More info" → "Run anyway".</p>
+      </div>
+      <div class="hero-visual reveal" style="--delay:120ms">
+        <div class="phone-frame" id="phoneFrame">
+          <span class="badge">REAL SCREENSHOT — NOT A MOCKUP</span>
+          <img src="assets/screenshot-real.png" alt="Real app screenshot captured by HoneyPie" />
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section id="how" class="section">
+    <h2 class="reveal">How it works</h2>
+    <div class="steps">
+      <div class="step-card reveal">
+        <div class="step-icon">📂</div>
+        <h3>1. Drop a folder or paste a link</h3>
+        <p>Drag your project into the app, or paste a GitHub repo URL. That's the whole setup.</p>
+      </div>
+      <div class="step-card reveal" style="--delay:100ms">
+        <div class="step-icon">⚙️</div>
+        <h3>2. HoneyPie builds &amp; explores</h3>
+        <p>It builds your app for real, installs it, and taps through the UI like a curious tester.</p>
+      </div>
+      <div class="step-card reveal" style="--delay:200ms">
+        <div class="step-icon">🖼️</div>
+        <h3>3. Get real assets, instantly</h3>
+        <p>Real screenshots and clean device-frame mockups, ready to drop into your store listing.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="honest" class="section section-honest">
+    <div class="honest-inner reveal">
+      <h2>We'd rather tell you the truth than lose your trust</h2>
+      <p class="section-lede">HoneyPie is an early, open-source build. Here's exactly what's real today and what isn't — no vague marketing language.</p>
+      <div class="honest-grid">
+        <div class="honest-col honest-yes">
+          <h3>✅ Real today</h3>
+          <ul>
+            <li>Native Android / Jetpack Compose apps get real builds, real installs, and real screen captures — verified end-to-end against Google's own <a href="https://github.com/android/sunflower" target="_blank" rel="noopener">Sunflower</a> sample app</li>
+            <li>Drag-and-drop a folder or paste any git repo URL</li>
+            <li>Zero setup — Node.js is bundled inside the installer</li>
+            <li>Fully open source, MIT-style, on GitHub</li>
+          </ul>
+        </div>
+        <div class="honest-col honest-no">
+          <h3>🚧 Not there yet</h3>
+          <ul>
+            <li>Flutter and iOS projects currently get placeholder assets, not real captures</li>
+            <li>Installer is unsigned — expect a SmartScreen warning</li>
+            <li>Needs the Android SDK + an emulator already set up for real capture</li>
+            <li>No AI-driven exploration or copywriting yet — today's logic is deterministic, not AI</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-cta">
+    <div class="cta-inner reveal">
+      <img src="assets/logo.png" alt="HoneyPie" class="cta-logo" />
+      <h2>Stop taking screenshots by hand.</h2>
+      <a class="btn btn-primary btn-large" href="https://github.com/varshinicb1/honeypie/releases/latest" target="_blank" rel="noopener">Download HoneyPie — it's free</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>Built in the open. <a href="https://github.com/varshinicb1/honeypie" target="_blank" rel="noopener">github.com/varshinicb1/honeypie</a></p>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
