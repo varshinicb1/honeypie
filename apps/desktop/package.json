@@ -19,7 +19,7 @@
     "@honeypie/cli": "workspace:*",
     "@tauri-apps/cli": "^2",
     "esbuild": "^0.28.1",
-    "vite": "^6.0.3",
+    "vite": "^8.1.3",
     "typescript": "~5.6.2"
   }
 }
